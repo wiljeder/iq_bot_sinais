@@ -161,27 +161,23 @@ def yellow(t) -> str:
 
 
 def update_pares_abertos(binary, digital):
-    while True:
-        par = api.get_all_open_time() # pega todos os pares (isso demora uns 3-5 segundos pra retornar)
-        for paridade in par['binary']:
-            if par['binary'][paridade]['open'] == True and paridade not in binary:
-                binary.append(paridade) # caso o par esteja aberto e ainda nao esteja na lista...
-            if par['binary'][paridade]['open'] == False and paridade in binary:
-                binary.pop(paridade) # caso o par esteja fechado e esteja na lista
+    par = api.get_all_open_time() # pega todos os pares (isso demora uns 3-5 segundos pra retornar)
+    for paridade in par['binary']:
+        if par['binary'][paridade]['open'] == True and paridade not in binary:
+            binary.append(paridade) # caso o par esteja aberto e ainda nao esteja na lista...
+        if par['binary'][paridade]['open'] == False and paridade in binary:
+            binary.pop(binary.index(paridade)) # caso o par esteja fechado e esteja na lista
 
-        for paridade in par['digital']:
-            if par['digital'][paridade]['open'] == True and paridade not in digital:
-                digital.append(paridade)
-            if par['digital'][paridade]['open'] == False and paridade in digital:
-                digital.pop(paridade)
-
-        time.sleep(60)
+    for paridade in par['digital']:
+        if par['digital'][paridade]['open'] == True and paridade not in digital:
+            digital.append(paridade)
+        if par['digital'][paridade]['open'] == False and paridade in digital:
+            digital.pop(digital.index(paridade))
 
 
 def check_stop():
     b = api.get_balance() # atualiza a banca antes de comparar os valores
     print(yellow(horario()) + ' Lucro atual: ' + (green(str(round(b - balance, 2))) if b - balance > 0 else red(str(round(b - balance, 2)))))
-    print(' stopwin = ' + str(round(stopwin, 2)) + ' stoploss = ' + str(round(stoploss, 2)))
 
     if b >= stopwin :
         print(Fore.YELLOW + ' Stopwin batido :)')
@@ -209,6 +205,7 @@ if __name__ == "__main__":
         print(yellow(horario()) + ' Carregando configurações...')
         api.change_balance('PRACTICE')
 
+
     binary = [] # lista de ativos binarios abertos
     digital = [] # lista de ativos digitais abertos
     balance = api.get_balance()  # banca
@@ -216,6 +213,8 @@ if __name__ == "__main__":
     stoploss = round(balance*.85, 2) # se perder 15% da banca
     lucro_global = 0 # pra checar os stop
     lista = ler_lista() # lista de sinais
+
+    update_pares_abertos(binary, digital)
 
     print()
     print(yellow(horario()) + ' Porcentagem da banca como entrada (ex 1.5): ', end='')
@@ -241,9 +240,6 @@ if __name__ == "__main__":
         entradas = {} #lista de dados das entradas
         results = [] # retorno das threads
 
-        results.append(executor.submit(update_pares_abertos, binary, digital))  # thread para atualizar os pares abertos
-        time.sleep(6)  # para dar tempo de carregar a lista de pares abertos
-
         i = 0 # index da lista delay (pega todos os delays independentemente de faltar pouco tempo ou o tempo já ter passado
         j = 0 # index da lista de entradas (só pega as informações das entradas válidas)
         for l in lista:
@@ -264,9 +260,7 @@ if __name__ == "__main__":
 
         print()
 
-        while True:
-            if len(entradas) == 0:
-                break
+        while len(entradas) > 0:
             for i in range(len(entradas)):
                 try: # para cada entrada, verifica se o horário dela está dentro dos próximos 3 minutos
                     if next_3_min(entradas[i][4]): # caso esteja, adiciona o delay atualizado na lista de entradas (de AGORA até a entrada)
@@ -277,6 +271,7 @@ if __name__ == "__main__":
                     pass
 
             time.sleep(60) # 60 segundos pq ele testa os próximos 3 minutos, entao ta de boa assim eu acho
+            update_pares_abertos(binary, digital)
 
         for f in concurrent.futures.as_completed(results): # conforme as funções forem retornando, vai printando se tiver alguma coisa no return
             return_value = f.result()

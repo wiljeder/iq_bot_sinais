@@ -1,0 +1,2 @@
+colorama
+git+https://github.com/iqoptionapi/iqoptionapi

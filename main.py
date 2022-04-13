@@ -264,7 +264,6 @@ if __name__ == "__main__":
             for i in range(entradas_popadas, len(entradas)+entradas_popadas):
                 try: # para cada entrada, verifica se o horário dela está dentro dos próximos 3 minutos
                     if next_3_min(entradas[i][4]): # caso esteja, adiciona o delay atualizado na lista de entradas (de AGORA até a entrada)
-                        print(yellow(horario()) + ' Proximos 3 minutos ' + str(entradas[i]))
                         entradas[i].append(run_at(str(entradas[i][4])[11:-3])[1])
                         results.append(executor.submit(entrada_inicial, entradas[i])) # cria a thread para a entrada
                         entradas.pop(i) # tira a entrada da lista

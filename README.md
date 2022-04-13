@@ -8,7 +8,6 @@ Instalar as dependencias necessarias: <br />
 <p align="left">
    To do:
 </p>
-
  - [ ] Tabela de entradas fixa no terminal
  - [ ] Mostrar delay das entradas em tempo real
  - [ ] Entrada de 0, 1 e 2 gales ao mesmo tempo (um .txt pra cada lista?)

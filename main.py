@@ -20,10 +20,10 @@ def entrada_inicial(args):
         print(Fore.YELLOW + horario() + ' Par ' + par + ' fechado em binário e digital')
     elif par in binary: # preferencia pra operacao binaria pq tem menos delay no gale
         operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global)
-        return
     else:
         operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global)
-        return
+
+    return
 
 
 def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital):
@@ -138,7 +138,7 @@ def next_3_min(entrada) -> bool:  # verifica se o horário de entrada está dent
     hora_entrada = datetime.strptime(entrada, '%Y-%m-%d %H:%M:%S')
     hora_agora = datetime.strptime(str(datetime.now())[:-7], '%Y-%m-%d %H:%M:%S')
 
-    if (hora_entrada - hora_agora).total_seconds() <= 180:
+    if 0 < (hora_entrada - hora_agora).total_seconds() <= 180:
         return True
     else:
         return False
@@ -190,8 +190,8 @@ def check_stop():
 
 
 if __name__ == "__main__":
-    # api = IQ_Option('login', 'password')
-    api = IQ_Option(input(' Email: '), getpass.getpass(prompt=' Senha: ')) # esconde a senha no terminal, mas nao funciona no pycharm
+    # api = IQ_Option('', '')
+    api = IQ_Option(input(' Email: '), getpass.getpass(prompt=' Senha: ')) # esconde a senha no terminal, mas nao funciona no terminal do pycharm
     api.connect()
 
     print()
@@ -209,12 +209,10 @@ if __name__ == "__main__":
     binary = [] # lista de ativos binarios abertos
     digital = [] # lista de ativos digitais abertos
     balance = api.get_balance()  # banca
-    stopwin = round(balance*1.2, 2) # se ganhar 20% da banca
+    stopwin = round(balance*1.15, 2) # se ganhar 15% da banca
     stoploss = round(balance*.85, 2) # se perder 15% da banca
     lucro_global = 0 # pra checar os stop
     lista = ler_lista() # lista de sinais
-
-    update_pares_abertos(binary, digital)
 
     print()
     print(yellow(horario()) + ' Porcentagem da banca como entrada (ex 1.5): ', end='')
@@ -260,20 +258,24 @@ if __name__ == "__main__":
 
         print()
 
+        entradas_popadas = 0 # nao sei explicar direito, sem isso o "i" do loop de entradas nao vai funcionar pq o tamanho da lista diminui enquanto o index da entrada aumenta, eventualmente nao da pra acessar a entrada e para de funcionar
         while len(entradas) > 0:
-            for i in range(len(entradas)):
+            update_pares_abertos(binary, digital)
+            for i in range(entradas_popadas, len(entradas)+entradas_popadas):
                 try: # para cada entrada, verifica se o horário dela está dentro dos próximos 3 minutos
                     if next_3_min(entradas[i][4]): # caso esteja, adiciona o delay atualizado na lista de entradas (de AGORA até a entrada)
                         entradas[i].append(run_at(str(entradas[i][4])[11:-3])[1])
                         results.append(executor.submit(entrada_inicial, entradas[i])) # cria a thread para a entrada
-                        entradas.pop(i) # remove a entrada da lista
+                        entradas.pop(i) # tira a entrada da lista
+                        entradas_popadas += 1 # incrementa entradas popadas pra nao dar erro de index mais tarde
                 except:
                     pass
 
-            time.sleep(60) # 60 segundos pq ele testa os próximos 3 minutos, entao ta de boa assim eu acho
-            update_pares_abertos(binary, digital)
+            time.sleep(10) # vai testar umas 4 vezes a cada minuto, é o suficiente
 
-        for f in concurrent.futures.as_completed(results): # conforme as funções forem retornando, vai printando se tiver alguma coisa no return
+        print()
+
+        for f in concurrent.futures.as_completed(results): # printa se tiver alguma coisa no return das threads
             return_value = f.result()
             if return_value is not None:
                 print(f.return_value)

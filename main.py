@@ -14,7 +14,7 @@ init(autoreset=True)
 lucro_global = 0
 
 def entrada_inicial(args):
-    par, valor, direcao, duracao, entrada, lucro_global, delay  = args
+    par, valor, direcao, duracao, entrada, lucro_global, binary, digital, delay  = args
 
     if par not in binary and par not in digital:
         print(Fore.YELLOW + horario() + ' Par ' + par + ' fechado em binário e digital')
@@ -26,7 +26,7 @@ def entrada_inicial(args):
         return
 
 
-def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global):
+def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital):
     lucro_local = 0
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
@@ -53,7 +53,7 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global)
             if lucro > 0:
                 print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
-                check_stop()
+                check_stop(binary, digital)
                 return
             elif lucro < 0:
                 print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
@@ -61,13 +61,13 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global)
                 valor = round(valor * 2, 2)
             else:
                 print(yellow(horario()) + ' Doji')
-                check_stop()
+                check_stop(binary, digital)
                 return
 
-    check_stop()
+    check_stop(binary, digital)
 
 
-def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global):
+def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital):
     lucro_local = 0
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
@@ -97,7 +97,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global)
                     if lucro > 0:
                         print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                             str(round(lucro, 2))) + ' | M' + str(duracao))
-                        check_stop()
+                        check_stop(binary, digital)
                         return
                     else:
                         print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
@@ -105,7 +105,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global)
                         valor = round(valor * 2, 2)
                         break
 
-    check_stop()
+    check_stop(binary, digital)
 
 
 def ler_lista() -> object:
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                 print(yellow(horario()) + ' Falha na entrada, horário muito próximo | ' + str(entrada) + ' | ' + lista[l][1] + ' | ' + str(
                         valor) + ' | ' + str(lista[l][3]) + ' | M' + str(lista[l][0]))
             elif delay[i] >= 10:
-                entradas[j] = [lista[l][1], valor, lista[l][3], int(lista[l][0]), entrada, lucro_global] #lista de argumentos das entradas cadastradas (DELAY NAO É INSERIDO AQUI)
+                entradas[j] = [lista[l][1], valor, lista[l][3], int(lista[l][0]), entrada, lucro_global, binary, digital] #lista de argumentos das entradas cadastradas (DELAY NAO É INSERIDO AQUI)
                 print(
                     yellow(horario()) + ' Entrada cadastrada | ' + str(entrada) + ' | ' + lista[l][1] + ' | ' + str(
                         valor) + ' | ' + str(lista[l][3]) + ' | M' + str(lista[l][0]))

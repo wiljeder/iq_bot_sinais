@@ -1,8 +1,9 @@
 from colorama import Fore, init
 from iqoptionapi.stable_api import IQ_Option
+import configparser
 import time
 import concurrent.futures
-import sys
+import os
 import getpass
 import collections
 from datetime import datetime
@@ -16,13 +17,20 @@ def entrada_inicial(args):
     par, valor, direcao, duracao, entrada, delay  = args
     global binary
     global digital
+    global config
 
     if par not in binary and par not in digital:
         print(Fore.YELLOW + horario() + ' Par ' + par + ' fechado em binário e digital')
-    elif par in binary: # preferencia pra operacao binaria pq tem menos delay no gale
-        operacao_binaria(par, valor, direcao, duracao, entrada, delay)
+    elif config['operation_priority'] == 'binary':
+        if par in binary: # preferencia pra operacao binaria
+            operacao_binaria(par, valor, direcao, duracao, entrada, delay)
+        else:
+            operacao_digital(par, valor, direcao, duracao, entrada, delay)
     else:
-        operacao_digital(par, valor, direcao, duracao, entrada, delay)
+        if par in digital: # preferencia pra operacao digital
+            operacao_digital(par, valor, direcao, duracao, entrada, delay)
+        else:
+            operacao_binaria(par, valor, direcao, duracao, entrada, delay)
 
     return
 
@@ -32,11 +40,13 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
     global lucro_global
     global balance
     global api
+    global is_negotiating
 
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gale + 1):
         status, id = api.buy(valor, par, direcao, duracao)  # timeframe em minutos, direcao em minusculo
+        is_negotiating += 1
 
         if not status:
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
@@ -54,26 +64,31 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
                 print(yellow(horario()) + red(' Gale 2') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
                     duracao))
 
+            lucro_local -= valor
+
             resultado, lucro = api.check_win_v4(id)
             if lucro > 0:
                 print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
-                lucro_local += valor
-                check_stop(lucro_local)
+
+                lucro_global += lucro + lucro_local + valor
+                is_negotiating -= 1
+                check_stop()
                 return
             elif lucro < 0:
                 print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
-                valor = round(valor * 2, 2)
-                lucro_local += lucro
+                valor = round(valor * float(config['gale_multiplicator']), 2)
             else:
                 print(yellow(horario()) + ' Doji' + ' | ' + par + ' | Perda: ' + red(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
-                lucro_local += lucro
-                check_stop(lucro_local)
+
+                is_negotiating -= 1
+                check_stop()
                 return
 
-    check_stop(lucro_local)
+    is_negotiating -= 1
+    check_stop()
 
 
 def operacao_digital(par, valor, direcao, duracao, entrada, delay):
@@ -81,11 +96,13 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
     global lucro_global
     global balance
     global api
+    global is_negotiating
 
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gale + 1):
         check, id = api.buy_digital_spot(par, valor, direcao, duracao)  # timeframe em minutos, direcao em minusculo
+        is_negotiating += 1
 
         if not check:
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
@@ -103,6 +120,8 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
                 print(yellow(horario()) + red(' Gale 2') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
                     duracao))
 
+            lucro_local -= valor
+
             while True:
                 status, lucro = api.check_win_digital_v2(id)
 
@@ -110,17 +129,19 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
                     if lucro > 0:
                         print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                             str(round(lucro, 2))) + ' | M' + str(duracao))
-                        lucro_local += valor
-                        check_stop(lucro_local)
+
+                        is_negotiating -= 1
+                        lucro_global += lucro + lucro_local + valor
+                        check_stop()
                         return
                     else:
                         print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
                             str(round(lucro, 2))) + ' | M' + str(duracao))
-                        valor = round(valor * 2, 2)
-                        lucro_local += valor
+                        valor = round(valor * float(config['gale_multiplicator']), 2)
                         break
 
-    check_stop(lucro_local)
+    is_negotiating -= 1
+    check_stop()
 
 
 def ler_lista() -> object:
@@ -194,26 +215,35 @@ def update_pares_abertos():
             digital.pop(digital.index(paridade))
 
 
-def check_stop(valor):
+def check_stop():
     global lucro_global
     global balance
+    global is_negotiating
 
-    lucro_global += valor
-    print(yellow(horario()) + ' Lucro atual: ' + (green(str(lucro_global)) if lucro_global > 0 else red(str(lucro_global))))
+    l = str(round(lucro_global, 2))
+    print(yellow(horario()) + ' Lucro atual: ' + (green(l) if lucro_global > 0 else red(l)))
 
-    if lucro_global >= .15*balance : # 15% stopwin
-        print(Fore.YELLOW + ' Stopwin batido :)')
-        input('Presssione ENTER para sair\n')
-        sys.exit()
-    elif lucro_global <= -abs(.15*balance): # 15% stoploss
-        print(Fore.YELLOW + ' Stoploss batido :(')
-        input('Presssione ENTER para sair\n')
-        sys.exit()
+    while True:
+        if is_negotiating == 0:
+            if lucro_global >= float(config['stopwin'])/100*balance:
+                print(Fore.YELLOW + ' Stopwin batido :)')
+                os._exit(1)
+            elif lucro_global <= -abs(float(config['stoploss'])/100*balance):
+                print(Fore.YELLOW + ' Stoploss batido :(')
+                os._exit(1)
+
+
+def read_config():
+    config = configparser.RawConfigParser()
+    config.read('config.cfg')
+
+    return dict(config.items('config'))
 
 
 if __name__ == "__main__":
-    # api = IQ_Option('email', 'password')
-    api = IQ_Option(input(' Email: '), getpass.getpass(prompt=' Senha: ')) # esconde a senha no terminal, mas nao funciona no terminal do pycharm
+    config = read_config()
+
+    api = IQ_Option(config['email'], config['password'])
     api.connect()
 
     print()
@@ -221,26 +251,23 @@ if __name__ == "__main__":
     if not api.check_connect():
         print(yellow(horario()) + ' Falha ao se conectar')
         input('Presssione ENTER para sair\n')
-        sys.exit()
+        os._exit(1)
     else:
         print(yellow(horario()) + ' Conectado com sucesso')
         print(yellow(horario()) + ' Carregando configurações...')
-        api.change_balance('PRACTICE')
+        api.change_balance(config['balance_type'])
 
-
+    stop = False # pra encerrar o programa pelo sinal da thread
+    is_negotiating = 0 # nao pode encerrar o programa no check_stop() enquanto tiver alguma entrada rolando
     binary = [] # lista de ativos binarios abertos
     digital = [] # lista de ativos digitais abertos
     balance = api.get_balance()  # banca
     lucro_global = 0 # pra checar os stop
     lista = ler_lista() # lista de sinais
 
-    print()
-    print(yellow(horario()) + ' Porcentagem da banca como entrada (ex 1.5): ', end='')
-    valor = round(float(input())/100*balance, 2)
-    print(yellow(horario()) + ' Delay até o servidor (milissegundos): ', end = '')
-    delay_usuario = int(input())
-    print(yellow(horario()) + ' Quantidade de gales da lista: ', end = '')
-    gale = int(input())
+    valor = round(float(config['balance_percentage_buy'])/100*balance, 2)
+    delay_usuario = int(config['delay'])
+    gale = int(config['gales'])
 
     # valor = round(balance*.05, 2)
     # delay_usuario = 2500
@@ -290,7 +317,7 @@ if __name__ == "__main__":
                 except:
                     pass
 
-            time.sleep(10) # vai testar umas 4 vezes a cada minuto, é o suficiente
+            # time.sleep(10) # vai testar umas 4 vezes a cada minuto, é o suficiente
 
         print()
 

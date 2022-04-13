@@ -8,6 +8,7 @@ Instalar as dependencias necessarias: <br />
 <p align="left">
    To do:
 </p>
+
  - [ ] Tabela de entradas fixa no terminal
  - [ ] Mostrar delay das entradas em tempo real
  - [ ] Entrada de 0, 1 e 2 gales ao mesmo tempo (um .txt pra cada lista?)
@@ -16,4 +17,3 @@ Instalar as dependencias necessarias: <br />
  - [x] Arquivo de configuração separado
  - [x] Arrumar e checar stopwin / stoploss
  - [x] Diminuir o delay dos gales do digital 👈 impossibilitado pela própria IQ
-

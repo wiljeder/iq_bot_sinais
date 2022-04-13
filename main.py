@@ -41,10 +41,11 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
     global balance
     global api
     global is_negotiating
+    global gales
 
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
-    for i in range(gale + 1):
+    for i in range(gales + 1):
         status, id = api.buy(valor, par, direcao, duracao)  # timeframe em minutos, direcao em minusculo
         is_negotiating += 1
 
@@ -87,6 +88,7 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
                 check_stop()
                 return
 
+    lucro_global += lucro_local
     is_negotiating -= 1
     check_stop()
 
@@ -97,10 +99,11 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
     global balance
     global api
     global is_negotiating
+    global gales
 
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
-    for i in range(gale + 1):
+    for i in range(gales + 1):
         check, id = api.buy_digital_spot(par, valor, direcao, duracao)  # timeframe em minutos, direcao em minusculo
         is_negotiating += 1
 
@@ -140,6 +143,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
                         valor = round(valor * float(config['gale_multiplicator']), 2)
                         break
 
+    lucro_global += lucro_local
     is_negotiating -= 1
     check_stop()
 
@@ -220,15 +224,14 @@ def check_stop():
     global balance
     global is_negotiating
 
-    l = str(round(lucro_global, 2))
-    print(yellow(horario()) + ' Lucro atual: ' + (green(l) if lucro_global > 0 else red(l)))
+    print(yellow(horario()) + ' Lucro atual: ' + (green(str(lucro_global)) if lucro_global > 0 else red(str(lucro_global))))
 
     while True:
         if is_negotiating == 0:
             if lucro_global >= float(config['stopwin'])/100*balance:
                 print(Fore.YELLOW + ' Stopwin batido :)')
                 os._exit(1)
-            elif lucro_global <= -abs(float(config['stoploss'])/100*balance):
+            elif lucro_global <= -(float(config['stoploss'])/100*balance):
                 print(Fore.YELLOW + ' Stoploss batido :(')
                 os._exit(1)
 
@@ -267,11 +270,7 @@ if __name__ == "__main__":
 
     valor = round(float(config['balance_percentage_buy'])/100*balance, 2)
     delay_usuario = int(config['delay'])
-    gale = int(config['gales'])
-
-    # valor = round(balance*.05, 2)
-    # delay_usuario = 2500
-    # gale = 1
+    gales = int(config['gales'])
 
     print()
     print(yellow(horario()) + ' Banca inicial: ' + str(balance))

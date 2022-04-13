@@ -10,6 +10,8 @@ Instalar as dependencias necessarias: <br />
 </p>
 
  - [x] Ordenar a lista de sinais pela hora
+ - [ ] Entrada de sinais pelo terminal? Não sei se é boa ideia
+ - [ ] Entrada de 0, 1 e 2 gales ao mesmo tempo
  - [ ] Criar uma GUI daorinha
  - [ ] Arrumar e checar stopwin / stoploss
  - [ ] Tabela de entradas fixa no terminal

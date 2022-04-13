@@ -175,7 +175,7 @@ def update_pares_abertos(binary, digital):
             digital.pop(digital.index(paridade))
 
 
-def check_stop():
+def check_stop(binary, digital):
     b = api.get_balance() # atualiza a banca antes de comparar os valores
     print(yellow(horario()) + ' Lucro atual: ' + (green(str(round(b - balance, 2))) if b - balance > 0 else red(str(round(b - balance, 2)))))
 

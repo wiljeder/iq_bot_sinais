@@ -11,31 +11,36 @@ from datetime import datetime
 init(autoreset=True)
 
 
-lucro_global = 0
 
 def entrada_inicial(args):
-    par, valor, direcao, duracao, entrada, lucro_global, binary, digital, delay  = args
+    par, valor, direcao, duracao, entrada, delay  = args
+    global binary
+    global digital
 
     if par not in binary and par not in digital:
         print(Fore.YELLOW + horario() + ' Par ' + par + ' fechado em binário e digital')
     elif par in binary: # preferencia pra operacao binaria pq tem menos delay no gale
-        operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital)
+        operacao_binaria(par, valor, direcao, duracao, entrada, delay)
     else:
-        operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital)
+        operacao_digital(par, valor, direcao, duracao, entrada, delay)
 
     return
 
 
-def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital):
+def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
     lucro_local = 0
+    global lucro_global
+    global balance
+    global api
+
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gale + 1):
         status, id = api.buy(valor, par, direcao, duracao)  # timeframe em minutos, direcao em minusculo
 
         if not status:
-            print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par.lower() + ' : ' + str(
-                valor) + ' : ' + direcao + ' : M' + duracao)
+            print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
+                valor) + ' : ' + direcao + ' : M' + str(duracao))
             print(id)
             return
         else:
@@ -53,30 +58,38 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay, lucro_global,
             if lucro > 0:
                 print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
-                check_stop(binary, digital)
+                lucro_local += valor
+                check_stop(lucro_local)
                 return
             elif lucro < 0:
                 print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
                     str(round(lucro, 2))) + ' | M' + str(duracao))
                 valor = round(valor * 2, 2)
+                lucro_local += lucro
             else:
-                print(yellow(horario()) + ' Doji')
-                check_stop(binary, digital)
+                print(yellow(horario()) + ' Doji' + ' | ' + par + ' | Perda: ' + red(
+                    str(round(lucro, 2))) + ' | M' + str(duracao))
+                lucro_local += lucro
+                check_stop(lucro_local)
                 return
 
-    check_stop(binary, digital)
+    check_stop(lucro_local)
 
 
-def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global, binary, digital):
+def operacao_digital(par, valor, direcao, duracao, entrada, delay):
     lucro_local = 0
+    global lucro_global
+    global balance
+    global api
+
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gale + 1):
         check, id = api.buy_digital_spot(par, valor, direcao, duracao)  # timeframe em minutos, direcao em minusculo
 
         if not check:
-            print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par.lower() + ' : ' + str(
-                valor) + ' : ' + direcao + ' : M' + duracao)
+            print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
+                valor) + ' : ' + direcao + ' : M' + str(duracao))
             print(id)
             return
         else:
@@ -97,15 +110,17 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay, lucro_global,
                     if lucro > 0:
                         print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
                             str(round(lucro, 2))) + ' | M' + str(duracao))
-                        check_stop(binary, digital)
+                        lucro_local += valor
+                        check_stop(lucro_local)
                         return
                     else:
                         print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
                             str(round(lucro, 2))) + ' | M' + str(duracao))
                         valor = round(valor * 2, 2)
+                        lucro_local += valor
                         break
 
-    check_stop(binary, digital)
+    check_stop(lucro_local)
 
 
 def ler_lista() -> object:
@@ -160,7 +175,11 @@ def yellow(t) -> str:
     return Fore.YELLOW + t + Fore.RESET # retorna a string com a cor aplicada nela e o reset de cor logo após
 
 
-def update_pares_abertos(binary, digital):
+def update_pares_abertos():
+    global binary
+    global digital
+    global api
+
     par = api.get_all_open_time() # pega todos os pares (isso demora uns 3-5 segundos pra retornar)
     for paridade in par['binary']:
         if par['binary'][paridade]['open'] == True and paridade not in binary:
@@ -175,22 +194,25 @@ def update_pares_abertos(binary, digital):
             digital.pop(digital.index(paridade))
 
 
-def check_stop(binary, digital):
-    b = api.get_balance() # atualiza a banca antes de comparar os valores
-    print(yellow(horario()) + ' Lucro atual: ' + (green(str(round(b - balance, 2))) if b - balance > 0 else red(str(round(b - balance, 2)))))
+def check_stop(valor):
+    global lucro_global
+    global balance
 
-    if b >= stopwin :
+    lucro_global += valor
+    print(yellow(horario()) + ' Lucro atual: ' + (green(str(lucro_global)) if lucro_global > 0 else red(str(lucro_global))))
+
+    if lucro_global >= .15*balance : # 15% stopwin
         print(Fore.YELLOW + ' Stopwin batido :)')
         input('Presssione ENTER para sair\n')
         sys.exit()
-    elif stoploss >= b:
+    elif lucro_global <= -abs(.15*balance): # 15% stoploss
         print(Fore.YELLOW + ' Stoploss batido :(')
         input('Presssione ENTER para sair\n')
         sys.exit()
 
 
 if __name__ == "__main__":
-    # api = IQ_Option('', '')
+    # api = IQ_Option('email', 'password')
     api = IQ_Option(input(' Email: '), getpass.getpass(prompt=' Senha: ')) # esconde a senha no terminal, mas nao funciona no terminal do pycharm
     api.connect()
 
@@ -209,8 +231,6 @@ if __name__ == "__main__":
     binary = [] # lista de ativos binarios abertos
     digital = [] # lista de ativos digitais abertos
     balance = api.get_balance()  # banca
-    stopwin = round(balance*1.15, 2) # se ganhar 15% da banca
-    stoploss = round(balance*.85, 2) # se perder 15% da banca
     lucro_global = 0 # pra checar os stop
     lista = ler_lista() # lista de sinais
 
@@ -229,7 +249,6 @@ if __name__ == "__main__":
     print()
     print(yellow(horario()) + ' Banca inicial: ' + str(balance))
     print(yellow(horario()) + ' Valor das entradas: ' + str(valor))
-    print(yellow(horario()) + ' Objetivo: ' + str(stopwin))
     print()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:  # multithreading
@@ -248,7 +267,7 @@ if __name__ == "__main__":
                 print(yellow(horario()) + ' Falha na entrada, horário muito próximo | ' + str(entrada) + ' | ' + lista[l][1] + ' | ' + str(
                         valor) + ' | ' + str(lista[l][3]) + ' | M' + str(lista[l][0]))
             elif delay[i] >= 10:
-                entradas[j] = [lista[l][1], valor, lista[l][3], int(lista[l][0]), entrada, lucro_global, binary, digital] #lista de argumentos das entradas cadastradas (DELAY NAO É INSERIDO AQUI)
+                entradas[j] = [lista[l][1], valor, lista[l][3], int(lista[l][0]), entrada] #lista de argumentos das entradas cadastradas (DELAY NAO É INSERIDO AQUI)
                 print(
                     yellow(horario()) + ' Entrada cadastrada | ' + str(entrada) + ' | ' + lista[l][1] + ' | ' + str(
                         valor) + ' | ' + str(lista[l][3]) + ' | M' + str(lista[l][0]))
@@ -260,7 +279,7 @@ if __name__ == "__main__":
 
         entradas_popadas = 0 # nao sei explicar direito, sem isso o "i" do loop de entradas nao vai funcionar pq o tamanho da lista diminui enquanto o index da entrada aumenta, eventualmente nao da pra acessar a entrada e para de funcionar
         while len(entradas) > 0:
-            update_pares_abertos(binary, digital)
+            update_pares_abertos()
             for i in range(entradas_popadas, len(entradas)+entradas_popadas):
                 try: # para cada entrada, verifica se o horário dela está dentro dos próximos 3 minutos
                     if next_3_min(entradas[i][4]): # caso esteja, adiciona o delay atualizado na lista de entradas (de AGORA até a entrada)

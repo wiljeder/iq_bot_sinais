@@ -42,35 +42,34 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
     global api
     global is_negotiating
     global gales
-
+    is_negotiating += 1
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gales + 1):
         status, id = api.buy(valor, par, direcao, duracao)  # timeframe em minutos, direcao em minusculo
-        is_negotiating += 1
 
         if not status:
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
-                valor) + ' : ' + direcao + ' : M' + str(duracao))
+                valor) + ' : ' + direcao + ' : M' + str(duracao) + '\n')
             print(id)
             return
         else:
             if i == 0:
                 print(yellow(horario()) + ' Entrada binária | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
             elif i == 1:
                 print(yellow(horario()) + red(' Gale 1') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
             elif i == 2:
                 print(yellow(horario()) + red(' Gale 2') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
 
             lucro_local -= valor
 
             resultado, lucro = api.check_win_v4(id)
             if lucro > 0:
                 print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
-                    str(round(lucro, 2))) + ' | M' + str(duracao))
+                    str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
 
                 lucro_global += lucro + lucro_local + valor
                 is_negotiating -= 1
@@ -78,11 +77,11 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
                 return
             elif lucro < 0:
                 print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
-                    str(round(lucro, 2))) + ' | M' + str(duracao))
+                    str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
                 valor = round(valor * float(config['gale_multiplicator']), 2)
             else:
                 print(yellow(horario()) + ' Doji' + ' | ' + par + ' | Perda: ' + red(
-                    str(round(lucro, 2))) + ' | M' + str(duracao))
+                    str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
 
                 is_negotiating -= 1
                 check_stop()
@@ -100,28 +99,27 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
     global api
     global is_negotiating
     global gales
-
+    is_negotiating += 1
     time.sleep(delay)  # espera o delay até a hora de fazer a entrada
 
     for i in range(gales + 1):
         check, id = api.buy_digital_spot(par, valor, direcao, duracao)  # timeframe em minutos, direcao em minusculo
-        is_negotiating += 1
 
         if not check:
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
-                valor) + ' : ' + direcao + ' : M' + str(duracao))
+                valor) + ' : ' + direcao + ' : M' + str(duracao) + '\n')
             print(id)
             return
         else:
             if i == 0:
                 print(yellow(horario()) + ' Entrada digital | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
             elif i == 1:
                 print(yellow(horario()) + red(' Gale 1') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
             elif i == 2:
                 print(yellow(horario()) + red(' Gale 2') + ' | ' + par + ' | ' + str(valor) + ' | ' + direcao + ' | M' + str(
-                    duracao))
+                    duracao) + '\n')
 
             lucro_local -= valor
 
@@ -131,7 +129,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
                 if status:
                     if lucro > 0:
                         print(yellow(horario()) + green(' Win') + ' | ' + par + ' | Lucro: ' + green(
-                            str(round(lucro, 2))) + ' | M' + str(duracao))
+                            str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
 
                         is_negotiating -= 1
                         lucro_global += lucro + lucro_local + valor
@@ -139,7 +137,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
                         return
                     else:
                         print(yellow(horario()) + red(' Lose') + ' | ' + par + ' | Perda: ' + red(
-                            str(round(lucro, 2))) + ' | M' + str(duracao))
+                            str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
                         valor = round(valor * float(config['gale_multiplicator']), 2)
                         break
 
@@ -224,16 +222,18 @@ def check_stop():
     global balance
     global is_negotiating
 
-    print(yellow(horario()) + ' Lucro atual: ' + (green(str(lucro_global)) if lucro_global > 0 else red(str(lucro_global))))
+    print(yellow(horario()) + ' Lucro atual: ' + (green(str(lucro_global)) if lucro_global > 0 else red(str(lucro_global))) + '\n')
 
-    while True:
-        if is_negotiating == 0:
-            if lucro_global >= float(config['stopwin'])/100*balance:
-                print(Fore.YELLOW + ' Stopwin batido :)')
-                os._exit(1)
-            elif lucro_global <= -(float(config['stoploss'])/100*balance):
-                print(Fore.YELLOW + ' Stoploss batido :(')
-                os._exit(1)
+    stopwin = float(config['stopwin'])/100*balance
+    stoploss = -(abs(float(config['stoploss'])/100*balance))
+
+    if is_negotiating == 0:
+        if lucro_global >= stopwin:
+            print(Fore.YELLOW + ' Stopwin batido :)' + '\n')
+            os._exit(1)
+        elif lucro_global <= stoploss:
+            print(Fore.YELLOW + ' Stoploss batido :(' + '\n')
+            os._exit(1)
 
 
 def read_config():
@@ -325,4 +325,4 @@ if __name__ == "__main__":
             if return_value is not None:
                 print(f.return_value)
 
-    input('Pressione ENTER para sair\n')
+    # input('Pressione ENTER para sair\n')

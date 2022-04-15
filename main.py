@@ -52,6 +52,7 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
                 valor) + ' : ' + direcao + ' : M' + str(duracao) + '\n')
             print(id)
+            is_negotiating -= 1
             return
         else:
             if i == 0:
@@ -83,6 +84,7 @@ def operacao_binaria(par, valor, direcao, duracao, entrada, delay):
                 print(yellow(horario()) + ' Doji' + ' | ' + par + ' | Perda: ' + red(
                     str(round(lucro, 2))) + ' | M' + str(duracao) + '\n')
 
+                lucro_global += lucro_local + valor
                 is_negotiating -= 1
                 check_stop()
                 return
@@ -109,6 +111,7 @@ def operacao_digital(par, valor, direcao, duracao, entrada, delay):
             print(Fore.YELLOW + 'Falha na entrada | ' + str(entrada) + ' : ' + par + ' : ' + str(
                 valor) + ' : ' + direcao + ' : M' + str(duracao) + '\n')
             print(id)
+            is_negotiating -= 1
             return
         else:
             if i == 0:

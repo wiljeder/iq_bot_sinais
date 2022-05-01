@@ -17,4 +17,3 @@ Instalar as dependencias necessarias: <br />
  - [x] Arquivo de configuração separado
  - [x] Arrumar e checar stopwin / stoploss
  - [x] Diminuir o delay dos gales do digital 👈 impossibilitado pela própria IQ
- - [x] <b>A cara do 😠 freio da 👽 Blazer, ahn Hoje ela quer 'tá 😹〰️ do 🍆 lado, ahn Acelerando de 💦 Fazer, ahn Sempre com 👏 o 💌 bolso lotado, ahn Md na 🎶 Renegade, ahn Muito calmo e 😜 abusado, ahn Orochi 'tá 😹〰️ de 💞 Mercedes Preto caro e ‼️🥶 arrumado, é Aquela cena, vida de 🍴 cinema 📽 Numa semana é Mega-Sena Acumulada, ahn, agora não 😣😣😣 falta nada, ahn Mais de 💦 20k no 🤬😡 bolso, ahn, artilharia pesada, ê</b>
